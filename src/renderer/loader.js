@@ -87,6 +87,9 @@ export class Loader {
             }
         }
 
-        this._resolve(texture.clone(), this.sprites);
+        this._resolve({
+            texture : texture.clone(),
+            sprites : this.sprites
+        });
     }
 }

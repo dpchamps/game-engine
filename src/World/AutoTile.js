@@ -29,6 +29,15 @@ export class AutoTile {
         return neighborMask;
     }
 
+    static LetterMap = [
+        ['0', '1', '2', '3'],
+        ['4', '5', '7', '7'],
+        ['8', '9', 'A', 'B'],
+        ['C', 'D', 'E', 'F'],
+        ['G', 'H', 'I', 'J'],
+        ['K', 'L', 'M', 'N']
+    ];
+
     static GetCornerMasks(neighborByte) {
         const n = (neighborByte << 8) | neighborByte;
         return [
@@ -85,6 +94,12 @@ export class AutoTile {
         ];
     }
 
+    static LetterLookup(coord){
+        const {x,y} = coord;
+
+        return AutoTile.LetterMap[y][x];
+    }
+
     static GetBlobTileCoords(neighborMask){
         const filteredNeighborMask = AutoTile.FilterNeighborMask(neighborMask);
         const blobQuarterTiles = AutoTile.GetQuarterTilesFromNeighborMask(filteredNeighborMask);
@@ -92,13 +107,25 @@ export class AutoTile {
 
         for(let i = 0; i < 4; i += 1){
             const qTileIdx = blobQuarterTiles[i];
-            const qTileTop = qTileIdx / 4;
+            const qTileTop = Math.floor(qTileIdx / 4);
             const qTileLeft = qTileIdx % 4;
 
             tile.push({
                 x : qTileLeft,
                 y : qTileTop
             });
+        }
+
+        return tile;
+    }
+
+    static GetBlobQTileIdx(neighborMask){
+        const filteredNeighborMask = AutoTile.FilterNeighborMask(neighborMask);
+        const blobQuarterTiles = AutoTile.GetQuarterTilesFromNeighborMask(filteredNeighborMask);
+        const tile = [];
+
+        for(let i = 0; i < 4; i += 1){
+            tile.push(blobQuarterTiles[i]);
         }
 
         return tile;

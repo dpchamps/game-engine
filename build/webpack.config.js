@@ -1,9 +1,11 @@
 var path = require('path');
 var webpack = require('webpack');
+var PROD = (process.env.NODE_ENV === 'production');
 
-module.exports = {
+const UglifyJsPlugin = require('uglifyjs-webpack-plugin');
+
+var config = {
     entry: [
-        'webpack-dev-server/client?http://localhost:8080/',
         './main.js'
     ],
     output: {
@@ -33,3 +35,23 @@ module.exports = {
     mode: 'development',
     devtool: 'source-map'
 };
+
+if(!PROD){
+    config.entry.unshift( 'webpack-dev-server/client?http://localhost:8080/');
+}else{
+    config.entry = {
+        'index' : './main.js',
+        'index.min' : './main.js'
+    };
+    config.output.filename = '[name].js'
+    config.optimization = {
+        minimize : true,
+        minimizer: [new UglifyJsPlugin({
+            include: /\.min\.js$/
+        })]
+    }
+}
+
+
+
+module.exports = config;
