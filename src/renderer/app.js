@@ -15,6 +15,8 @@ export class App{
     constructor(PIXI){
         this.Application = PIXI.Application;
         this.el = document.querySelector('#game');
+
+        this.initialize();
     }
 
     initialize(){

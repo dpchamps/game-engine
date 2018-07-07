@@ -46,7 +46,9 @@ export class GameObject{
         return (this.velocity.x !== 0 || this.velocity.y !== 0);
     }
 
-    constructor(){}
+    constructor(){
+        this.getContainer();
+    }
     
     update(delta){
         if(this.canMove){

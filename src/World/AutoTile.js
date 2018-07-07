@@ -1,7 +1,7 @@
 "use strict";
-import {Tile} from './Tile';
-import {AutoTileAtlas} from '../util/lookup-tables/AutoTileAtlas';
+import {AutoTileAtlasNeighborMaskToIdx} from '../util/lookup-tables/AutoTileAtlas';
 import {BlobQuarterTileAtlas} from '../util/lookup-tables/BlobQuarterTileAtlas';
+import * as PIXI from 'pixi.js';
 
 export const NorthAndWest = 0x05; //-----N-W
 export const EastAndNorth = 0x14; //---E-N--
@@ -16,6 +16,7 @@ export const CornerSWMask = 0x7F; //Not C-------
 export const CornerScoreMask = 0x7; // -----CCC
 
 export class AutoTile {
+
     static FilterNeighborMask(neighborMask) {
         if ((neighborMask & NorthAndWest) !== NorthAndWest)
             neighborMask &= CornerNWMask;
@@ -29,15 +30,6 @@ export class AutoTile {
         return neighborMask;
     }
 
-    static LetterMap = [
-        ['0', '1', '2', '3'],
-        ['4', '5', '7', '7'],
-        ['8', '9', 'A', 'B'],
-        ['C', 'D', 'E', 'F'],
-        ['G', 'H', 'I', 'J'],
-        ['K', 'L', 'M', 'N']
-    ];
-
     static GetCornerMasks(neighborByte) {
         const n = (neighborByte << 8) | neighborByte;
         return [
@@ -48,8 +40,7 @@ export class AutoTile {
         ];
     }
 
-    //@return bool
-    static IsValidCornerMask(cornerMask) {
+        static IsValidCornerMask(cornerMask) {
         return (
             cornerMask !== 6
             && cornerMask !== 3
@@ -81,7 +72,7 @@ export class AutoTile {
 
     static GetTileIndex(neighborMask) {
         const filteredMask = AutoTile.FilterNeighborMask(neighborMask);
-        return AutoTileAtlas[filteredMask];
+        return AutoTileAtlasNeighborMaskToIdx[filteredMask];
     }
 
     static GetQuarterTilesFromNeighborMask(neighbors) {
@@ -92,12 +83,6 @@ export class AutoTile {
             BlobQuarterTileAtlas[0xC0 + cornerMasks[2]],
             BlobQuarterTileAtlas[0xD0 + cornerMasks[3]],
         ];
-    }
-
-    static LetterLookup(coord){
-        const {x,y} = coord;
-
-        return AutoTile.LetterMap[y][x];
     }
 
     static GetBlobTileCoords(neighborMask){

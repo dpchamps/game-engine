@@ -8,7 +8,7 @@ export class Loader {
     _reject;
 
     constructor(PIXI) {
-        this.loader = PIXI.loader;
+        this.loader = new PIXI.loaders.Loader();
         this.Sprite = PIXI.Sprite;
         this.Rectangle = PIXI.Rectangle;
         this.TextureCache = PIXI.utils.TextureCache;
@@ -66,6 +66,29 @@ export class Loader {
         })
     }
 
+    loadTexturesFromSpriteSheet(width, height, spriteSheet){
+        this.loader.reset();
+        const context = Object.assign({}, {
+            spriteSheet,
+            self: this,
+            x : width,
+            y : height
+        }, this);
+
+        return new Promise((res, rej) => {
+            context._resolve = res;
+            context._reject = rej;
+
+            try {
+                this.loader
+                    .add(spriteSheet)
+                    .load(this.setupTextures.bind(context));
+            } catch (e) {
+
+            }
+        })
+    }
+
     setup() {
         this.sprites = this.assets.map(this.getSprite.bind(this));
         this._resolve();
@@ -90,6 +113,29 @@ export class Loader {
         this._resolve({
             texture : texture.clone(),
             sprites : this.sprites
+        });
+    }
+
+    setupTextures(){
+        const texture = this.TextureCache[this.spriteSheet];
+        const cols = texture.width / this.x;
+        const rows = texture.height / this.y;
+        const spriteWidth = this.x;
+        const spriteHeight = this.y;
+        const textures = [];
+        for (let row = 0; row < rows; row += 1) {
+            for (let col = 0; col < cols; col += 1) {
+                const t = texture.clone();
+                const rect = new this.Rectangle(col * spriteWidth, row * spriteHeight, spriteWidth, spriteHeight);
+
+                t.frame = rect;
+                textures.push(t);
+            }
+        }
+
+        this._resolve({
+            parentTexture : texture.clone(),
+            textures
         });
     }
 }

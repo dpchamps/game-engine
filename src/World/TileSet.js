@@ -1,14 +1,19 @@
 "use strict";
 import {TileType, Terrain} from '../types';
+import * as Common from "../util/common";
+import {Tile} from "./Tile";
 import {Loader} from '../renderer/loader';
 import {Promisify} from "../util/decorators/Promisify";
 import {AutoTileAtlasIdxToNeighborMask} from "../util/lookup-tables/AutoTileAtlas";
 import {AutoTile} from "./AutoTile";
+import {renderer} from "../renderer";
 import * as PIXI from 'pixi.js';
+
+export const AutoTileWidth = 8;
 
 @Promisify
 export class TileSet {
-    sprites;
+    textures;
     texture;
     tileSize;
     tileType;
@@ -16,56 +21,114 @@ export class TileSet {
     constructor(spriteSheet, tileSize, tileType) {
         this.promisify();
         this.tileSize = tileSize;
+        this.qTileSize = tileSize * 0.5;
         this.tileType = tileType;
 
         let promiseChain;
 
         switch (tileType) {
             case TileType.AutoTile:
-                let _tileSize = tileSize * 0.5;
-                promiseChain = this.loadTileSet(_tileSize, spriteSheet)
-                    .then(() => this.buildAutoTiles.call(this, _tileSize));
+                promiseChain = this.loadTileSet(this.qTileSize, spriteSheet)
+                    .then(this.buildAutoTiles.bind(this));
                 break;
             case TileType.StaticTile:
-                promiseChain = this.loadTileSet(tileSize, spriteSheet);
+                promiseChain = this.loadTileSet(this.tileSize, spriteSheet)
                 break;
         }
 
-        promiseChain.then((container)=>this._resolve(container));
+        promiseChain.then((container) => this._resolve(container));
     }
 
     loadTileSet(tileSize, spriteSheet) {
         const loader = Loader.GetInstance();
 
-        return loader.loadSpriteSheet(tileSize, tileSize, spriteSheet)
-            .then(({texture, sprites}) => {
-                this.texture = texture;
-                this.sprites = sprites;
+        return loader
+            .loadTexturesFromSpriteSheet(tileSize, tileSize, spriteSheet)
+            .then(({parentTexture, textures}) => {
+                this.texture = parentTexture;
+                this.textures = textures;
+                this.width = this.texture / this.tileSize
             });
     }
 
-    buildAutoTiles(tileSize) {
-        const container = new PIXI.Container();
+    buildQTileSprite(qTileIdx, idx) {
+        const sprite = new PIXI.Sprite(this.textures[qTileIdx]);
+        sprite.x = (idx % 2) * this.qTileSize;
+        sprite.y = ((idx / 2) | 0) * this.qTileSize;
 
-        const buildTile = (qTileIdx) => {
-            const sprite = new PIXI.Sprite(this.sprites[qTileIdx].texture);
-            sprite.x = (qTileIdx % 32);
-            sprite.y = (Math.floor(qTileIdx / 32));
-            console.log(sprite.x, sprite.y);
-            return sprite;
-        };
+        return sprite;
+    }
 
-        const pushToContainer = (sprite) => container.addChild(sprite);
+    generateTileTexture(qTiles) {
+        const tile = new PIXI.Container();
+        const qTileArray = qTiles.map(this.buildQTileSprite.bind(this));
+
+        tile.addChild.apply(tile, qTileArray);
 
 
-        let blobCoords = Object.values(AutoTileAtlasIdxToNeighborMask).map(AutoTile.GetBlobQTileIdx);
+        return renderer.app.renderer.generateTexture(tile);
+    }
 
-        blobCoords.forEach( tile => {
-            tile.map(buildTile).forEach(pushToContainer);
+    buildAutoTiles() {
+
+        this.textures = AutoTileAtlasIdxToNeighborMask
+            .map(AutoTile.GetBlobQTileIdx)
+            .map(this.generateTileTexture.bind(this));
+
+        this.width = AutoTileWidth;
+
+        return Promise.resolve({
+            sprites: this.textures,
+            tileSize: this.tileSize
         });
+    }
 
-        console.log(container);
+    getIndexFromArgs(argArray) {
+        let idx;
 
-        return Promise.resolve(container);
+        const oneArg = argArray.length === 1;
+        const oneValidArg = (argArray.length === 2 && Common.isObject(argArray[1]));
+        const twoValidArgs = (typeof argArray[0] === 'number' && typeof argArray[1] === 'number');
+
+        if ( oneArg || oneValidArg) {
+            idx = argArray[0]
+        }else if(twoValidArgs){
+            idx = argArray[0] + this.width * argArray[2];
+        }
+
+        return idx;
+    }
+
+    getOptionsFromArgs(argArray){
+        let options = {};
+
+        if(Common.isObject(argArray[1])){
+            options = argArray[1];
+        }else if(Common.isObject(argArray[2])){
+            options = argArray[2];
+        }
+
+        return options;
+    }
+
+    getSprite(...rest) {
+        const idx = this.getIndexFromArgs(rest);
+        const tileTex = this.textures[idx];
+
+        return new PIXI.Sprite(tileTex.clone());
+    }
+
+    getTile(...rest) {
+        const idx = this.getIndexFromArgs(rest);
+        const sprite = this.getSprite(idx);
+        const tileOptions = this.getOptionsFromArgs(rest);
+
+        return new Tile(this.tileType, sprite, tileOptions);
+    }
+
+    getAutoTile(neighborMask, tileOptions) {
+        const idx = AutoTile.GetTileIndex(neighborMask);
+
+        return this.getTile(idx, tileOptions);
     }
 }

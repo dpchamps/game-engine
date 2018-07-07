@@ -8,24 +8,66 @@ import {AutoTile} from './src/World/AutoTile';
 import {AutoTileAtlas, AutoTileAtlasNeighborMaskToIdx, AutoTileAtlasNeighborToKey} from "./src/util/lookup-tables/AutoTileAtlas";
 import {TileSet} from "./src/World/TileSet";
 import {TileType} from "./src/types";
+import {Grid} from "./src/World/Grid";
 
-// for(let i = 0; i < 47; i += 1){
-//     const mask = AutoTile.GetTileIndex(i);
-//     console.log(AutoTile.GetBlobTileCoords(mask).map(AutoTile.LetterLookup));
-// }
-//console.log(Object.keys(AutoTileAtlasNeighborMaskToIdx).map(AutoTile.GetBlobTileCoords).map( arr => arr.map(AutoTile.LetterLookup)));
-renderer.app.initialize();
-renderer.loader.assets = [
-    'assets/images/chars/main_char_2/hero_walk.png'
+
+let grid = new Grid(10, 10, 32);
+
+grid.addTileSet('grassAutoTile', 'assets/images/tilesets/autotile/grass.png', TileType.AutoTile);
+
+const mapLookup = {
+    0 : {},
+    1 : {
+        tileSetName : 'grassAutoTile'
+    }
+};
+
+const map = [
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 1, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 1, 1, 0, 1, 1, 0, 0, 0],
+    [0, 0, 0, 0, 0, 1, 1, 1, 1, 0],
+    [0, 0, 0, 0, 0, 0, 0, 1, 1, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 1, 1, 0, 0, 0, 0],
+    [0, 0, 0, 0, 1, 1, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
 ];
 
+const buildGrid = ( cell ) => mapLookup[cell];
+const test = map.map(row => row.map(buildGrid));
 
-const tileSet = new TileSet('assets/images/tilesets/autotile/grass.png', 32, TileType.AutoTile);
-
-tileSet.ready.then((container)=>{
-    console.log(container)
-    renderer.app.stage.addChild(container);
+grid.assetsReady().then(() => {
+    console.log('grid ready');
+    grid.loadGrid(test);
+    renderer.app.stage.addChild(grid.container);
+    renderer.app.ticker.add(grid.update.bind(grid));
 });
+// // for(let i = 0; i < 47; i += 1){
+// //     const mask = AutoTile.GetTileIndex(i);
+// //     console.log(AutoTile.GetBlobTileCoords(mask).map(AutoTile.LetterLookup));
+// // }
+// //console.log(Object.keys(AutoTileAtlasNeighborMaskToIdx).map(AutoTile.GetBlobTileCoords).map( arr => arr.map(AutoTile.LetterLookup)));
+// renderer.app.initialize();
+// renderer.loader.assets = [
+//     'assets/images/chars/main_char_2/hero_walk.png'
+// ];
+//
+//
+// const tileSet = new TileSet('assets/images/tilesets/autotile/grass.png', 32, TileType.AutoTile);
+//
+// tileSet.ready.then(({sprites, tileSize})=>{
+//     sprites.forEach( (sprite, index) => {
+//         const tile = tileSet.getTile(index);
+//         const x = (index % 8) * tileSize;
+//         const y = ((index / 8) | 0) * tileSize;
+//
+//         tile.setCoords({x, y});
+//
+//         renderer.app.stage.addChild(tile.container);
+//     })
+// });
 // const spriteSheet = 'assets/images/chars/main_char_2/hero_walk1.png';
 // const player = new Character('walk', spriteSheet, 64, 64);
 

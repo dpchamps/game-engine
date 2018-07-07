@@ -2,10 +2,20 @@
 import {Container} from '../util/decorators/Container';
 import {TileType, Terrain} from '../types';
 
+const defaultOptions = {
+    terrain : Terrain.Grass,
+    passable : true,
+    layer : 1
+};
+
+
 @Container
 export class Tile{
-    constructor(tileSet, type){
+    constructor(type, sprite, options){
+        this.getContainer();
         this.type = type;
-        this.tileSet = tileSet;
+        this.sprite = sprite;
+        this.options = Object.assign({}, defaultOptions, options);
+        this.container.addChild(this.sprite);
     }
 }
