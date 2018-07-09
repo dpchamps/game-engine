@@ -1,9 +1,5 @@
 "use strict";
-import * as PIXI from 'pixi.js';
 import {Container} from '../util/decorators/Container';
-import {TileSet} from './TileSet'
-import {Loader} from '../renderer/loader';
-import {Tile} from "./Tile";
 import {TileType} from "../types";
 import {AutoTile} from "./AutoTile";
 
@@ -11,31 +7,29 @@ import {AutoTile} from "./AutoTile";
 export class Grid {
     tileSets = new Map();
     needsUpdate = true;
+    tileReference = {};
+    grid = [];
+    zIndex = 0;
 
-    constructor(rows, cols, tileSize = 32) {
+    constructor(rows, cols, tileSize = 32, zIndex = 0, parent = null) {
         this.getContainer();
-        this.grid = [];
+
+        this.container.zIndex = zIndex;
         this.tileSize = tileSize;
         this.width = rows * tileSize;
         this.height = cols * tileSize;
         this.rows = rows;
         this.cols = cols;
 
+        if (parent)
+            this.tileSets = parent.tileSets;
+
         this.initialize();
     }
 
-    assetsReady() {
-        return new Promise((res, rej) => {
-            const tileSetPromises = Array.from(this.tileSets.values())
-                .map(tileSet => tileSet.ready);
-            Promise.all([...tileSetPromises])
-                .then(res);
-        });
-    }
-
-    iterateMap(fn){
-        for (let row = 0; row < this.rows-1; row += 1) {
-            for (let col = 0; col < this.cols-1; col += 1) {
+    iterateGrid(fn) {
+        for (let row = 0; row < this.rows; row += 1) {
+            for (let col = 0; col < this.cols; col += 1) {
                 fn(row, col);
             }
         }
@@ -43,14 +37,6 @@ export class Grid {
 
     initialize() {
         this.resetMap();
-    }
-
-    addTileSet(name, spriteSheet, tileType) {
-        const tileSet = new TileSet(spriteSheet, this.tileSize, tileType);
-        this.tileSets.set(name, tileSet);
-
-
-        return this;
     }
 
     resetMap() {
@@ -63,8 +49,8 @@ export class Grid {
     }
 
     loadGrid(grid) {
-        for (let row = 0; row < this.rows-1; row += 1) {
-            for (let col = 0; col < this.cols-1; col += 1) {
+        for (let row = 0; row < this.rows; row += 1) {
+            for (let col = 0; col < this.cols; col += 1) {
                 const cell = grid[row][col];
 
                 let {tileSetName, tileIdx, tileOptions} = cell;
@@ -74,83 +60,76 @@ export class Grid {
         }
     }
 
-    addTile(row, col, tileSetName, tileIdx, tileOptions){
-        if(!tileSetName) return;
-
+    addTile(row, col, tileSetName, tileIdx, tileOptions) {
+        this.needsUpdate = true;
+        if (!tileSetName) return;
+        if (this.grid[row][col] !== null) {
+            this.updateTile(row, col, tileSetName, tileIdx, tileOptions);
+            return;
+        }
         const tileSet = this.tileSets.get(tileSetName);
 
         tileOptions = tileOptions || {};
         tileIdx = tileIdx || 0;
 
         const tile = tileSet.getTile(tileIdx, tileOptions);
-        const x = row * this.tileSize;
-        const y = col * this.tileSize;
+        const x = col * this.tileSize;
+        const y = row * this.tileSize;
 
-        tile.setCoords({x, y});
+        tile.sprite.x = x;
+        tile.sprite.y = y;
         tile.tileSetName = tileSetName;
-        this.container.addChild(tile.container);
+        tile.tileIdx = tileIdx;
+        this.container.addChild(tile.sprite);
         this.grid[row][col] = tile;
-        this.needsUpdate = true;
     }
 
-    updateTile(row, col, tileSetName, tileIdx, tileOptions){
+    updateTile(row, col, tileSetName, tileIdx, tileOptions) {
         const tile = this.grid[row][col];
-
-        if(!tile) return;
-
+        if (!tile || tile.tileIdx === tileIdx) return;
 
         const tileSet = this.tileSets.get(tileSetName);
 
-        tile.container.removeChild(tile.sprite);
-        tile.sprite = tileSet.getSprite(tileIdx);
-        tile.container.addChild(tile.sprite);
+        tile.tileIdx = tileIdx;
+
+        tile.sprite.texture = tileSet.getTexture(tileIdx);
         tile.options = Object.assign({}, tile.options, tileOptions);
     }
 
-    removeTile(row, col){
+    removeTile(row, col) {
         const tile = this.grid[row][col];
 
-        if(!tile) return;
+        if (!tile) return;
 
-        this.container.removeTile(tile.container);
+        this.container.removeChild(tile.sprite);
         this.grid[row][col] = null;
         this.needsUpdate = true;
     }
 
-    /**
-     * (-1, 1)(0, 1)(1, 1)
-     * (-1, 0)(tile)(1, 0)
-     * (-1,-1)(0,-1)(1, -1)
-     * 876
-     * @param terrain
-     * @param row
-     * @param col
-     */
-    getAutoTileNeighbors(terrain, row, col){
+    getAutoTileNeighbors(terrain, row, col) {
         let neighbors = [];
         let coords = [
             [-1, 0],
-            [-1, 1],
-            [0, 1],
-            [1, 1],
-            [1, 0],
+            [-1, -1],
+            [0, -1],
             [1, -1],
+            [1, 0],
+            [1, 1],
             [0, 1],
-            [-1,-1]
+            [-1, 1]
         ];
 
-        while(coords.length > 0){
+        while (coords.length > 0) {
             const [x, y] = coords.shift();
 
-            const _col = col+y;
-            const _row = row+x;
-            console.log(_row, _col);
+            const _col = col + x;
+            const _row = row + y;
 
-            if(!this.grid[_row]) {
+            if (!this.grid[_row]) {
                 neighbors.push(false);
-            }else if(!this.grid[_row][_col]){
+            } else if (!this.grid[_row][_col]) {
                 neighbors.push(false);
-            }else{
+            } else {
                 neighbors.push(this.grid[_row][_col].options.terrain === terrain);
             }
         }
@@ -158,27 +137,71 @@ export class Grid {
         return neighbors
     }
 
-    autoTile(){
+    getNeighbors(row, col) {
+        const coords = [
+            [-1, 0], [-1, -1],
+            [0, -1], [1, -1],
+            [1, 0], [1, 1],
+            [0, 1], [-1, 1]
+        ];
 
-        const iteratorFn = (row, col) => {
-            const tile = this.grid[row][col];
-            if(tile === null) return;
-            if(tile.type === TileType.AutoTile){
-                const neighbors = this.getAutoTileNeighbors(tile.options.terrain, row, col);
-                const neighborMask = AutoTile.GetNeighborMask(neighbors);
-                console.log(neighbors);
-                const tileIndex = AutoTile.GetTileIndex(neighborMask);
+        const iterator = (([x,y], index) => {
+            const _col = col + x;
+            const _row = row + y;
 
-
-                this.updateTile(row, col, tile.tileSetName, tileIndex);
+            if (!this.grid[_row] || !this.grid[_row][_col]) {
+                return null;
+            } else {
+                return this.grid[_row][_col].tileSetName;
             }
-        };
+        });
 
-        this.iterateMap(iteratorFn.bind(this));
+        return coords.map(iterator);
     }
 
-    update(){
-        if(this.needsUpdate){
+    findSimilarNeighbors(tile) {
+        return tile.neighbors.map(tileSetName => {
+            return tileSetName === tile.tileSetName
+        })
+    }
+
+    collectTiles() {
+        this.tileReference = {};
+        const iteratorFn = (row, col) => {
+            const tile = this.grid[row][col];
+            if (tile === null) return;
+
+            tile.neighbors = this.getNeighbors(row, col);
+            tile.calculateBitwiseNeighbors();
+
+            this.tileReference[tile.type] = this.tileReference[tile.type] || [];
+            this.tileReference[tile.type].push({
+                tile,
+                row,
+                col
+            });
+        };
+
+        this.iterateGrid(iteratorFn.bind(this));
+    }
+
+    autoTile() {
+        const autoTiles = this.tileReference[TileType.AutoTile];
+        if (!autoTiles) return;
+
+        autoTiles.forEach(tileRef => {
+            const {row, col, tile} = tileRef;
+            const neighbors = this.findSimilarNeighbors(tile);
+            const neighborMask = AutoTile.GetNeighborMask(neighbors);
+            const newIdx = AutoTile.GetTileIndex(neighborMask);
+
+            this.updateTile(row, col, tile.tileSetName, newIdx, tile.options);
+        })
+    }
+
+    update() {
+        if (this.needsUpdate) {
+            this.collectTiles();
             this.autoTile();
             this.needsUpdate = false;
         }

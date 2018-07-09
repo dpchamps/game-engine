@@ -9,7 +9,7 @@ export class App{
         height: 250,
         antialias: true,
         resolution: 1,
-        transparent: false
+        transparent: false,
     };
 
     constructor(PIXI){
@@ -25,10 +25,10 @@ export class App{
         const {view, renderer, stage, ticker} = this._app;
 
         renderer.autoResize = true;
-        renderer.resize(window.innerWidth, window.innerHeight);
-
+        renderer.resize(window.innerWidth , window.innerHeight );
+        
         window.addEventListener('resize', debounce(() =>{
-            renderer.resize(window.innerWidth, window.innerHeight);
+            renderer.resize(window.innerWidth , window.innerHeight );
         }, 150));
 
         this.el.appendChild(view);

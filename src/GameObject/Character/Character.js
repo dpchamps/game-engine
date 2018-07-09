@@ -3,15 +3,17 @@
 import {GameObject} from '../GameObject';
 import {Loader} from '../../renderer/loader';
 import {DEFAULT} from './constants';
-import {Container} from '../../util/decorators/Container';
+import {Direction} from '../../types/Direction';
+
 import * as PIXIE from 'pixi.js';
 
 export class Character extends GameObject {
     _animations = new Map();
     _actions = new Map();
+    _behaviors = new Map();
     _cachedSprite;
 
-    direction = DEFAULT.DIR;
+    direction = Direction.DOWN;
     currentAction = null;
     animate = false;
 
@@ -48,6 +50,8 @@ export class Character extends GameObject {
                 });
         });
     }
+    
+    
 
     loadAnimation(name, texture, sprites) {
         const spriteData = this._actions.get(name);

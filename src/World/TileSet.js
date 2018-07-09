@@ -32,7 +32,7 @@ export class TileSet {
                     .then(this.buildAutoTiles.bind(this));
                 break;
             case TileType.StaticTile:
-                promiseChain = this.loadTileSet(this.tileSize, spriteSheet)
+                promiseChain = this.loadTileSet(this.tileSize, spriteSheet);
                 break;
         }
 
@@ -110,12 +110,18 @@ export class TileSet {
 
         return options;
     }
+    
+    getTexture(...rest){
+        const idx = this.getIndexFromArgs(rest);
+        
+        return this.textures[idx];
+    }
 
     getSprite(...rest) {
         const idx = this.getIndexFromArgs(rest);
         const tileTex = this.textures[idx];
 
-        return new PIXI.Sprite(tileTex.clone());
+        return new PIXI.Sprite(tileTex);
     }
 
     getTile(...rest) {
@@ -124,11 +130,5 @@ export class TileSet {
         const tileOptions = this.getOptionsFromArgs(rest);
 
         return new Tile(this.tileType, sprite, tileOptions);
-    }
-
-    getAutoTile(neighborMask, tileOptions) {
-        const idx = AutoTile.GetTileIndex(neighborMask);
-
-        return this.getTile(idx, tileOptions);
     }
 }
