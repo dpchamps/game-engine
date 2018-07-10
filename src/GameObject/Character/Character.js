@@ -11,7 +11,10 @@ export class Character extends GameObject {
     _animations = new Map();
     _actions = new Map();
     _behaviors = new Map();
-    _cachedSprite;
+    _currentBehavior = null;
+    _cachedDirection;
+    _behaviorInterval = 0;
+    _targetBehaviorInterval = 0;
 
     direction = Direction.DOWN;
     currentAction = null;
@@ -50,8 +53,19 @@ export class Character extends GameObject {
                 });
         });
     }
-    
-    
+
+    addBehavior(name, fn) {
+        this._behaviors.set(name, fn.bind(this));
+    }
+
+    setCurrentBehavior(name, interval = 1) {
+        this._targetBehaviorInterval = interval;
+        this._currentBehavior = this._behaviors.get(name);
+    }
+
+    clearCurrentBehavior() {
+        this._currentBehavior = null;
+    }
 
     loadAnimation(name, texture, sprites) {
         const spriteData = this._actions.get(name);
@@ -80,11 +94,11 @@ export class Character extends GameObject {
         this.animationSpeed = DEFAULT.SPEED;
     }
 
-    updateSprite(){
+    updateSprite() {
         const animationEntries = Object.entries(this._animations.get(this.currentAction));
 
         animationEntries.forEach(([direction, sprite]) => {
-            if (direction === this.direction) {
+            if (Number(direction) === this.direction) {
                 sprite.visible = true;
                 this.sprite = sprite;
             } else {
@@ -92,7 +106,7 @@ export class Character extends GameObject {
             }
         });
 
-        this._cachedSprite = this.sprite;
+        this._cachedDirection = this.direction;
     }
 
     setSpritePlayState() {
@@ -104,12 +118,23 @@ export class Character extends GameObject {
         }
     }
 
+    fireCurrentBehavior(delta) {
+        if (this._currentBehavior === null) return;
+
+        this._behaviorInterval += delta;
+        if (this._behaviorInterval >= this._targetBehaviorInterval) {
+            this._currentBehavior(delta);
+            this._behaviorInterval = 0;
+        }
+    }
+
     update(delta) {
-        if(this.sprite !== this._cachedSprite){
+        if (this.direction !== this._cachedDirection) {
             this.updateSprite();
         }
 
         this.setSpritePlayState();
+        this.fireCurrentBehavior(delta);
         super.update(delta);
     }
 }

@@ -5,7 +5,7 @@ import * as Matter from 'matter-js';
 import {renderer} from './src/renderer';
 import {Character} from './src/GameObject/Character/Character';
 import {AutoTile} from './src/World/AutoTile';
-import {snapToGrid} from './src/util/common';
+import {snapToGrid, randomInt} from './src/util/common';
 
 import {TileSet} from "./src/World/TileSet";
 import {TileType} from "./src/types";
@@ -41,6 +41,11 @@ const barrelGrid = [
 const spriteSheet = 'assets/images/chars/main_char_2/hero_walk1.png';
 const player = new Character('walk', spriteSheet, 64, 64);
 
+const behavior = function(deltaTime){
+    const dir = randomInt(0, 3);
+    this.direction = dir;
+};
+
 const buildGrid = (cell) => mapLookup[cell];
 world
     .addTileSet('grassAutoTile', 'assets/images/tilesets/autotile/grass.png', TileType.AutoTile)
@@ -68,6 +73,9 @@ Promise.all([
 
     player.setCoords({x : window.innerWidth/2, y : window.innerHeight / 2});
     player.isMoving = true;
+    player.animate = true;
+    player.addBehavior('test', behavior);
+    player.setCurrentBehavior('test', 100);
     console.log(player);
     world.container.addChild(player.container);
 
