@@ -11,7 +11,9 @@ import {TileSet} from "./src/World/TileSet";
 import {TileType} from "./src/types";
 import {Grid} from "./src/World/Grid";
 import {World} from './src/World/World';
+import {Vector} from 'matter-js';
 
+console.log(Vector);
 const mapLookup = {
     0: {},
     1: {
@@ -41,9 +43,17 @@ const barrelGrid = [
 const spriteSheet = 'assets/images/chars/main_char_2/hero_walk1.png';
 const player = new Character('walk', spriteSheet, 64, 64);
 
-const behavior = function(deltaTime){
+const randomWalk = function(deltaTime){
     const dir = randomInt(0, 3);
+    this.animate = true;
     this.direction = dir;
+    const forwardVector = this.forward();
+    this.setVelocity(Vector.mult(forwardVector, 0.8));
+};
+const stand = function(deltaTime){
+    this.sprite.gotoAndStop(0);
+    this.animate = false;
+    this.setVelocity(0,0);
 };
 
 const buildGrid = (cell) => mapLookup[cell];
@@ -74,8 +84,10 @@ Promise.all([
     player.setCoords({x : window.innerWidth/2, y : window.innerHeight / 2});
     player.isMoving = true;
     player.animate = true;
-    player.addBehavior('test', behavior);
-    player.setCurrentBehavior('test', 100);
+    player.addBehavior('randomWalk', randomWalk)
+        .addBehavior('stand', stand)
+        .setBehavior('randomWalk', 200)
+        .setBehavior('stand', 300);
     console.log(player);
     world.container.addChild(player.container);
 

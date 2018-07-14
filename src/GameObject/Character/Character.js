@@ -4,17 +4,21 @@ import {GameObject} from '../GameObject';
 import {Loader} from '../../renderer/loader';
 import {DEFAULT} from './constants';
 import {Direction} from '../../types/Direction';
-
+import {Vector} from 'matter-js';
+import {ForwardVectors} from "./constants";
 import * as PIXIE from 'pixi.js';
+
+
 
 export class Character extends GameObject {
     _animations = new Map();
     _actions = new Map();
     _behaviors = new Map();
-    _currentBehavior = null;
+    _currentBehaviorIndex = 0;
     _cachedDirection;
     _behaviorInterval = 0;
     _targetBehaviorInterval = 0;
+    _behaviorQueue = [];
 
     direction = Direction.DOWN;
     currentAction = null;
@@ -30,6 +34,19 @@ export class Character extends GameObject {
                     this._resolve();
                 });
         }
+    }
+
+    get _currentBehavior(){
+        if(typeof this._behaviorQueue[this._currentBehaviorIndex] === 'undefined'){
+            return null
+        }else{
+            return this._behaviorQueue[this._currentBehaviorIndex];
+        }
+    }
+
+    _cycleQueue(){
+        const currentIndex = this._currentBehaviorIndex;
+        this._currentBehaviorIndex = (currentIndex === this._behaviorQueue.length-1) ? 0 : currentIndex + 1;
     }
 
     addAction(name, spriteSheet, spriteWidth, spriteHeight) {
@@ -56,15 +73,33 @@ export class Character extends GameObject {
 
     addBehavior(name, fn) {
         this._behaviors.set(name, fn.bind(this));
+        return this;
     }
 
-    setCurrentBehavior(name, interval = 1) {
-        this._targetBehaviorInterval = interval;
-        this._currentBehavior = this._behaviors.get(name);
+    setBehavior(name, interval = 1) {
+        const behavior = {
+            name,
+            interval,
+            cb : this._behaviors.get(name)
+        };
+
+        this._behaviorQueue.push(behavior);
+        return this;
     }
 
-    clearCurrentBehavior() {
-        this._currentBehavior = null;
+    removeBehaviorFromCue(name) {
+        const behaviorIndex = this._behaviorQueue.findIndex( behavior => behavior.name === name);
+        const currentIndex = this._currentBehaviorIndex;
+        if(behaviorIndex === -1)
+            return;
+
+        if(behaviorIndex === currentIndex) {
+            this._cycleQueue();
+        }else{
+            this._currentBehaviorIndex--;
+        }
+
+        this._behaviorQueue.splice(behaviorIndex, 1);
     }
 
     loadAnimation(name, texture, sprites) {
@@ -122,10 +157,15 @@ export class Character extends GameObject {
         if (this._currentBehavior === null) return;
 
         this._behaviorInterval += delta;
-        if (this._behaviorInterval >= this._targetBehaviorInterval) {
-            this._currentBehavior(delta);
+        if (this._behaviorInterval >= this._currentBehavior.interval) {
+            this._currentBehavior.cb(delta);
+            this._cycleQueue();
             this._behaviorInterval = 0;
         }
+    }
+
+    forward(){
+        return ForwardVectors[this.direction];
     }
 
     update(delta) {
