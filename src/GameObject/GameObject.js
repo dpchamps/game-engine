@@ -1,11 +1,13 @@
 "use strict";
 import {Container} from '../util/decorators/Container';
+import {Bodies, Body, Vector} from 'matter-js';
 
 @Container
 export class GameObject{
     _resolve = null;
     _reject = null;
 
+    containers = [];
     canMove = true;
     velocity = {
         x : 0,
@@ -13,33 +15,21 @@ export class GameObject{
     };
     sprite = null;
     animationSpeed;
+    body;
 
     ready = new Promise( (resolve, reject) => {
         this._resolve = resolve;
         this._reject = reject;
     });
 
-    setVelocity(...args){
-        let x;
-        let y;
-        if(args[0] === Object(args[0])){
-            x = args[0].x;
-            y = args[0].y;
-        }else{
-            x = args[0];
-            y = args[1];
-        }
-
-        if(typeof x !== 'number'){
-            x = 0;
-        }
-
-        if(typeof y !== 'number'){
-            y = 0;
-        }
+    setVelocity(vector){
+        const{x,y} = vector;
 
         this.velocity.x = x;
         this.velocity.y = y;
+    }
+    addVelocity(vector){
+        this.velocity = Vector.add(this.velocity, vector);
     }
 
     isMoving(){
@@ -51,10 +41,12 @@ export class GameObject{
     }
     
     update(delta){
+        this.updateContainer();
         if(this.canMove){
-            this.container.x += this.velocity.x * delta;
-            this.container.y += this.velocity.y * delta;
+            Body.applyForce(this.body, this.getCoords(), {x : this.velocity.x,y : this.velocity.y})
         }
+        this.velocity = {x : 0, y: 0};
+
     }
 
     

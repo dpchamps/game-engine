@@ -42,6 +42,7 @@ export class QuadTree {
     getIndex(mRect) {
         const xMidPoint = this.bounds.x + (this.bounds.width / 2);
         const yMidPoint = this.bounds.y + (this.bounds.height / 2);
+        // console.log(`(${mRect.x}, ${mRect.y}) (${mRect.right},${mRect.top}) ${xMidPoint}) | ${yMidPoint}`);
 
         const inTopHalf = mRect.top < yMidPoint;
         const inBottomHalf = mRect.y > yMidPoint;
@@ -64,43 +65,73 @@ export class QuadTree {
     }
 
     resizeIfNeeded() {
-        if (this.objects > this.MAX_OBJECTS && this.level < this.MAX_LEVELS) {
+        if (this.objects.length > this.MAX_OBJECTS && this.level < this.MAX_LEVELS) {
+            // console.log('resizing');
             if (this.nodes[0] === null) {
                 this.split();
             }
 
-            while (this.objects.length > 0) {
-                const _mRect = this.objects.pop();
-                const _index = this.getIndex(_mRect);
-                this.nodes[_index].insert(_mRect)
-            }
+           for(let i = (this.objects.length-1); i > 0; i-=1){
+               // console.log(i, this.objects[i]);
+               const _index = this.getIndex(this.objects[i].getBounds());
+                if(_index !== -1){
+                    this.nodes[_index].insert(this.objects.splice(i, 1)[0])
+                }
+           }
+            // console.log(`After: ${this.level} - ${this.objects.length}`);
         }
     }
 
-    insert(mRect) {
+    insert(container) {
         if (this.nodes[0] !== null) {
-            const index = this.getIndex(mRect);
+            const index = this.getIndex(container.getBounds());
 
             if (index !== -1) {
-                this.nodes[index].insert(mRect);
+                this.nodes[index].insert(container);
+                return;
             }
-        } else {
-            this.objects.push(mRect);
         }
 
+        this.objects.push(container);
         this.resizeIfNeeded();
     }
 
-    getNearestObjects(mRect, returnObjects = []){
+    getNearestObjects(mRect, returnObjects = []) {
         const index = this.getIndex(mRect);
 
-        if(index !== -1 && this.nodes[0] !== null){
-            this.nodes[index].getNearestObjects(mRect, returnObjects);
+        //console.log(this.objects, mRect, this.level);
+        returnObjects = [...returnObjects, ...this.objects.slice()];
+        if (index !== -1 && this.nodes[0] !== null) {
+            return this.nodes[index].getNearestObjects(mRect, returnObjects);
         }
 
-        returnObjects = returnObjects.concat(this.objects);
 
         return returnObjects;
+    }
+
+    getAllItemsInQuadrant(q, arr = []){
+        // console.log(this.objects.length)
+        if(this.nodes[0] !== null && this.level < this.MAX_LEVELS){
+            arr = this.nodes[q].getAllItemsInQuadrant(q, arr);
+        }
+
+        arr = [...arr, ...this.objects];
+
+
+        return arr;
+    }
+
+    countAllObjects(numObjects = 0){
+        this.nodes.forEach(node => {
+            if(node !== null)
+                numObjects = node.countAllObjects(numObjects)
+        });
+
+        numObjects += this.objects.length;
+
+        return numObjects;
+
+
     }
 
 }

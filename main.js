@@ -4,6 +4,7 @@ import * as PIXI from 'pixi.js';
 import * as Matter from 'matter-js';
 import {renderer} from './src/renderer';
 import {Character} from './src/GameObject/Character/Character';
+import {Player} from "./src/GameObject/Character/Player";
 import {AutoTile} from './src/World/AutoTile';
 import {snapToGrid, randomInt} from './src/util/common';
 
@@ -11,9 +12,10 @@ import {TileSet} from "./src/World/TileSet";
 import {TileType} from "./src/types";
 import {Grid} from "./src/World/Grid";
 import {World} from './src/World/World';
-import {Vector} from 'matter-js';
+import {Vector, Body} from 'matter-js';
+import {Keyboard} from "./src/Input/Keyboard";
 
-console.log(Vector);
+
 const mapLookup = {
     0: {},
     1: {
@@ -41,14 +43,14 @@ const barrelGrid = [
     [3, 0, 4, 0, 0],
 ];
 const spriteSheet = 'assets/images/chars/main_char_2/hero_walk1.png';
-const player = new Character('walk', spriteSheet, 64, 64);
+const player = new Player('walk', spriteSheet, 64, 64);
 
 const randomWalk = function(deltaTime){
     const dir = randomInt(0, 3);
     this.animate = true;
     this.direction = dir;
     const forwardVector = this.forward();
-    this.setVelocity(Vector.mult(forwardVector, 0.8));
+    this.setVelocity(Vector.mult(forwardVector, 0.0002));
 };
 const stand = function(deltaTime){
     this.sprite.gotoAndStop(0);
@@ -62,9 +64,9 @@ world
     .addTileSet('wallAutoTile', 'assets/images/tilesets/autotile/wall.png', TileType.AutoTile)
     .addTileSet('barrels', 'assets/images/tilesets/barrels.png', TileType.StaticTile)
 
-    .addGrid(rows, (cols/2|0) + 2, 0, 0, 1)
-    .addGrid(rows, cols/2|0, 0, cols/2|0, 0)
-    .addGrid(2, 5, 10, 10, 10)
+    .addGrid(100, 100, 0, 0, 1)
+    .addGrid(rows, cols/2|0, 0, 0)
+    .addGrid(2, 5, 50, 50, 3)
 ;
 Promise.all([
     player.ready,
@@ -77,24 +79,28 @@ Promise.all([
     const mapData3 = barrelGrid.map(row => row.map(buildGrid));
 
     world.grids[0].loadGrid(mapData1);
-    world.grids[1].loadGrid(mapData2);
-    world.grids[2].loadGrid(mapData3);
-    console.log(rows * cols * world.grids.length, 'tiles');
+   //world.grids[1].loadGrid(mapData2);
+   world.grids[2].loadGrid(mapData3);
+   console.log(rows+' rows x' , cols+' cols', 'tiles');
 
-    player.setCoords({x : window.innerWidth/2, y : window.innerHeight / 2});
+
+    player.setCoords({x: 50*32, y: 50*32});
+    // player.setCoords({x: 0, y: 0});
     player.isMoving = true;
     player.animate = true;
-    player.addBehavior('randomWalk', randomWalk)
-        .addBehavior('stand', stand)
-        .setBehavior('randomWalk', 200)
-        .setBehavior('stand', 300);
+    // player.addBehavior('randomWalk', randomWalk)
+    //     .addBehavior('stand', stand)
+    //     .setBehavior('randomWalk', 200)
+    //     .setBehavior('stand', 300);
     console.log(player);
-    world.container.addChild(player.container);
+    world.addObject(player);
 
-
+    renderer.app.renderer.resize(world.camera.width, world.camera.height);
     renderer.app.stage.addChild(world.container);
     renderer.app.ticker.add(world.update.bind(world));
     renderer.app.ticker.add( player.update.bind(player) );
+
+    world.camera.follow(player);
 
 });
 

@@ -20,6 +20,7 @@ export class Grid {
         this.height = cols * tileSize;
         this.rows = rows;
         this.cols = cols;
+        this.parent = parent;
 
         if (parent)
             this.tileSets = parent.tileSets;

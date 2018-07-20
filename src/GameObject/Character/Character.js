@@ -1,14 +1,17 @@
 "use strict";
 
 import {GameObject} from '../GameObject';
+import {Container as PIXIContainer} from "pixi.js";
 import {Loader} from '../../renderer/loader';
 import {DEFAULT} from './constants';
 import {Direction} from '../../types/Direction';
 import {Vector} from 'matter-js';
 import {ForwardVectors} from "./constants";
-import * as PIXIE from 'pixi.js';
-
-
+import {extras, Graphics, Sprite} from 'pixi.js';
+import Mathf from 'Mathf';
+import {Body} from 'matter-js';
+import {PushStateFSM} from "../../util/data-structures/PushStateFSM";
+import {StandingCharacterState, WalkingCharacterState, RunningCharacterState, JumpingCharacterState} from "./CharacterStates";
 
 export class Character extends GameObject {
     _animations = new Map();
@@ -19,10 +22,16 @@ export class Character extends GameObject {
     _behaviorInterval = 0;
     _targetBehaviorInterval = 0;
     _behaviorQueue = [];
-
+    shadowContainer;
+    shadow;
+    _lastJump = false;
+    _peakJumpHeight = 0;
+    _maxJumpHeight = 4;
     direction = Direction.DOWN;
     currentAction = null;
     animate = false;
+    jumping = false;
+    landingTarget = null;
 
     constructor(action, spriteSheet, spriteWidth, spriteHeight) {
         super();
@@ -34,6 +43,7 @@ export class Character extends GameObject {
                     this._resolve();
                 });
         }
+        this.initShadow(spriteHeight, spriteWidth);
     }
 
     get _currentBehavior(){
@@ -115,7 +125,7 @@ export class Character extends GameObject {
         });
 
         textureArrays.forEach((textureArray, index) => {
-            const animationSprite = new PIXIE.extras.AnimatedSprite(textureArray);
+            const animationSprite = new extras.AnimatedSprite(textureArray);
 
             animationSprite.visible = false;
             spriteReference[index] = animationSprite;
@@ -127,6 +137,28 @@ export class Character extends GameObject {
 
     initialize() {
         this.animationSpeed = DEFAULT.SPEED;
+    }
+
+    initShadow(spriteWidth, spriteHeight){
+        const circle = new Graphics();
+        circle.lineStyle(0, 0xFFFFFF,1);
+        circle.alpha = 0.4;
+        circle.beginFill(0x22222233);
+        circle.drawEllipse(0,0, spriteWidth/5, spriteWidth/18);
+        circle.endFill();
+
+
+        this.shadow = new Sprite(circle.generateTexture());
+        this.shadow.anchor.x = 0.5;
+        this.shadow.anchor.y = 0.5;
+        this.shadow.x = spriteWidth/2;
+        this.shadow.y = spriteHeight - 3;
+        this.shadowContainer = new PIXIContainer();
+
+        this.containers.push(this.shadowContainer);
+
+        this.container.addChild(this.shadow);
+
     }
 
     updateSprite() {
@@ -142,6 +174,38 @@ export class Character extends GameObject {
         });
 
         this._cachedDirection = this.direction;
+    }
+
+    getPlayerAirDistance(){
+        let shadowYDistance = this.shadowContainer.y - this.container.y;
+        this._peakJumpHeight = Math.max(shadowYDistance, this._peakJumpHeight);
+
+        return Mathf.clamp(shadowYDistance*0.0045, 0, this._maxJumpHeight);
+    }
+
+    updateShadow(){
+        this.shadowContainer.x = this.container.x;
+        if(this.jumping){
+            const yDist = this.getPlayerAirDistance();
+            this.shadow.scale = {
+                x : 1+yDist,
+                y: 1+yDist
+            };
+        }else{
+            this.shadowContainer.y = this.container.y;
+        }
+
+        if(this._lastJump !== this.jumping){
+            if(this.jumping){
+                this.shadowContainer.addChild(this.shadow);
+            }else{
+                this.container.addChild(this.shadow);
+                this.shadow.scale = {
+                    x : 1,
+                    y: 1
+                };
+            }
+        }
     }
 
     setSpritePlayState() {
@@ -172,6 +236,30 @@ export class Character extends GameObject {
         if (this.direction !== this._cachedDirection) {
             this.updateSprite();
         }
+        this.updateShadow();
+
+        if(this.jumping){
+            const yDist = this.getPlayerAirDistance();
+            Body.applyForce(this.body, this.getCoords(), {
+                x: 0,
+                y: (yDist * 0.006) + this.velocity.y
+            });
+            if(this.getPlayerAirDistance() <= 0){
+                if(this.landingTarget){
+                    this.setCoords(this.landingTarget);
+                }
+                this.jumping = false;
+            }
+        }
+
+        if(Vector.magnitude(this.velocity) > 0){
+            this.animate = true;
+        }else if(!this.restingAnimation){
+            this.animate = false;
+            this.sprite.gotoAndStop(0);
+        }
+
+        this._lastJump = this.jumping;
 
         this.setSpritePlayState();
         this.fireCurrentBehavior(delta);

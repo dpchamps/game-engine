@@ -120,8 +120,11 @@ export class TileSet {
     getSprite(...rest) {
         const idx = this.getIndexFromArgs(rest);
         const tileTex = this.textures[idx];
+        const sprite = new PIXI.Sprite(tileTex);
 
-        return new PIXI.Sprite(tileTex);
+        sprite.renderable = false;
+
+        return sprite
     }
 
     getTile(...rest) {
