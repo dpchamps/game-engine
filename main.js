@@ -86,8 +86,7 @@ Promise.all([
 
     player.setCoords({x: 50*32, y: 50*32});
     // player.setCoords({x: 0, y: 0});
-    player.isMoving = true;
-    player.animate = true;
+
     // player.addBehavior('randomWalk', randomWalk)
     //     .addBehavior('stand', stand)
     //     .setBehavior('randomWalk', 200)

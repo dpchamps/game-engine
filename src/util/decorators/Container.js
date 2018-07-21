@@ -6,7 +6,7 @@ import {Body, Bodies} from 'matter-js';
 
 const bodyDefaults = {
   friction : 0.2,
-  frictionAir : 0.16
+  frictionAir : 0.2
 };
 
 export const Container = mixin({

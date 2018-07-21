@@ -4,11 +4,19 @@ export class PushStateFSM{
     constructor(){}
 
     pushState(state){
+        state.enter();
+        if(this.currentState !== null){
+            this.currentState.exit();
+        }
         this.stack.push(state);
     }
 
     popState(){
-        return this.stack.pop();
+        this.currentState.exit();
+        const returnState = this.stack.pop();
+        this.currentState.enter();
+
+        return returnState;
     }
 
     get currentState(){
@@ -19,8 +27,15 @@ export class PushStateFSM{
 export class State{
     command = null;
     complete = false;
+    hasEntered = false;
+    hasExited = false;
+
     constructor(){}
-    enter(){}
-    exit(){}
+    enter(){
+        this.hasEntered = true;
+    }
+    exit(){
+        this.hasExited = true;
+    }
     update(){}
 }

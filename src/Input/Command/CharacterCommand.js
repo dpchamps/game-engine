@@ -6,6 +6,7 @@ export class CharacterCommand extends Command{
     previousActions = [];
     constructor(character){
         super();
+        console.log('new character command', character)
         this.character = character;
     }
 
@@ -18,8 +19,8 @@ export class CharacterCommand extends Command{
     }
 }
 
-export class MoveCharacterCommand extends Command{
-    constructor(){super()}
+export class MoveCharacterCommand extends CharacterCommand{
+    constructor(...rest){super(...rest);}
 
     execute(force){
         const coords = this.character.getCoords();
@@ -33,16 +34,16 @@ export class MoveCharacterCommand extends Command{
     undo(){
         const lastCoords = this.previousActions.pop();
         const body = this.character.body;
-
+        console.log('undoing', lastCoords);
         Body.setPosition(body, lastCoords);
         super.undo();
     }
 }
 
-export class WalkCharacterCommand extends Command{
+export class WalkCharacterCommand extends MoveCharacterCommand{
     walkSpeed = 0.0003;
 
-    constructor(){super()}
+    constructor(...rest){super(...rest)}
 
     execute(walkSpeed){
         const forward = this.character.forward();
@@ -52,21 +53,21 @@ export class WalkCharacterCommand extends Command{
     }
 }
 
-export class JumpCharacterCommand extends Command{
-    jumpSpeed = 0.002;
+export class JumpCharacterCommand extends MoveCharacterCommand{
+    jumpSpeed = -0.0035;
 
-    constructor(){super()}
+    constructor(...rest){super(...rest)}
 
-    execute(){
-        const force = Vector.create(0, this.jumpSpeed);
+    execute(sign = 1){
+        const force = Vector.create(0, this.jumpSpeed*sign);
 
         super.execute(force);
     }
 }
 
-export class RunCharacterCommand extends Command{
+export class RunCharacterCommand extends MoveCharacterCommand{
     runSpeed = 0.0005;
-    constructor(){super()}
+    constructor(...rest){super(...rest)}
 
     execute(){
         const forward = this.character.forward();

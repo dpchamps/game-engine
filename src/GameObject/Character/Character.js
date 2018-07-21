@@ -11,7 +11,7 @@ import {extras, Graphics, Sprite} from 'pixi.js';
 import Mathf from 'Mathf';
 import {Body} from 'matter-js';
 import {PushStateFSM} from "../../util/data-structures/PushStateFSM";
-import {StandingCharacterState, WalkingCharacterState, RunningCharacterState, JumpingCharacterState} from "./CharacterStates";
+import {JumpingCharacterState, RunningCharacterState, StandingCharacterState, WalkingCharacterState} from "./CharacterStates";
 
 export class Character extends GameObject {
     _animations = new Map();
@@ -43,7 +43,8 @@ export class Character extends GameObject {
                     this._resolve();
                 });
         }
-        this.initShadow(spriteHeight, spriteWidth);
+        this.pushStateFSM = new PushStateFSM();
+
     }
 
     get _currentBehavior(){
@@ -137,6 +138,17 @@ export class Character extends GameObject {
 
     initialize() {
         this.animationSpeed = DEFAULT.SPEED;
+        this.updateSprite();
+        this.initShadow(this.sprite.width, this.sprite.height);
+
+        this.states = {
+            'standing' : new StandingCharacterState(this),
+            'walking' : new WalkingCharacterState(this),
+            'running' : new RunningCharacterState(this),
+            'jumping' : new JumpingCharacterState(this)
+        };
+
+        this.pushStateFSM.pushState(this.states.standing);
     }
 
     initShadow(spriteWidth, spriteHeight){
@@ -183,30 +195,6 @@ export class Character extends GameObject {
         return Mathf.clamp(shadowYDistance*0.0045, 0, this._maxJumpHeight);
     }
 
-    updateShadow(){
-        this.shadowContainer.x = this.container.x;
-        if(this.jumping){
-            const yDist = this.getPlayerAirDistance();
-            this.shadow.scale = {
-                x : 1+yDist,
-                y: 1+yDist
-            };
-        }else{
-            this.shadowContainer.y = this.container.y;
-        }
-
-        if(this._lastJump !== this.jumping){
-            if(this.jumping){
-                this.shadowContainer.addChild(this.shadow);
-            }else{
-                this.container.addChild(this.shadow);
-                this.shadow.scale = {
-                    x : 1,
-                    y: 1
-                };
-            }
-        }
-    }
 
     setSpritePlayState() {
         this.sprite.animationSpeed = this.animationSpeed;
@@ -233,36 +221,11 @@ export class Character extends GameObject {
     }
 
     update(delta) {
+        this.pushStateFSM.currentState.update();
         if (this.direction !== this._cachedDirection) {
             this.updateSprite();
         }
-        this.updateShadow();
-
-        if(this.jumping){
-            const yDist = this.getPlayerAirDistance();
-            Body.applyForce(this.body, this.getCoords(), {
-                x: 0,
-                y: (yDist * 0.006) + this.velocity.y
-            });
-            if(this.getPlayerAirDistance() <= 0){
-                if(this.landingTarget){
-                    this.setCoords(this.landingTarget);
-                }
-                this.jumping = false;
-            }
-        }
-
-        if(Vector.magnitude(this.velocity) > 0){
-            this.animate = true;
-        }else if(!this.restingAnimation){
-            this.animate = false;
-            this.sprite.gotoAndStop(0);
-        }
-
-        this._lastJump = this.jumping;
-
         this.setSpritePlayState();
-        this.fireCurrentBehavior(delta);
         super.update(delta);
     }
 }

@@ -11,6 +11,7 @@ export class Player extends Character {
 
     constructor(...rest) {
         super(...rest);
+
         this.initializeKeyboardControls();
     }
 
@@ -20,28 +21,49 @@ export class Player extends Character {
 
         keyboard.register('up', 'w', function () {
             self.direction = Direction.UP;
-            const moveVector = Vector.mult(ForwardVectors[Direction.UP], self.moveSpeed);
-            self.addVelocity(moveVector);
+            if(self.pushStateFSM.currentState === self.states.standing){
+                self.pushStateFSM.pushState(self.states.walking)
+            }
+        }, function () {
+            self.pushStateFSM.popState();
         });
         keyboard.register('down', 's', function () {
             self.direction = Direction.DOWN;
-            const moveVector = Vector.mult(ForwardVectors[Direction.DOWN], self.moveSpeed);
-            self.addVelocity(moveVector);
+            if(self.pushStateFSM.currentState === self.states.standing){
+                self.pushStateFSM.pushState(self.states.walking)
+            }
+        }, function () {
+            self.pushStateFSM.popState();
         });
         keyboard.register('left', 'a', function () {
             self.direction = Direction.LEFT;
-            const moveVector = Vector.mult(ForwardVectors[Direction.LEFT], self.moveSpeed);
-            self.addVelocity(moveVector);
+            if(self.pushStateFSM.currentState === self.states.standing){
+                self.pushStateFSM.pushState(self.states.walking)
+            }
+        }, function () {
+            self.pushStateFSM.popState();
         });
         keyboard.register('right', 'd', function () {
             self.direction = Direction.RIGHT;
-            const moveVector = Vector.mult(ForwardVectors[Direction.RIGHT], self.moveSpeed);
-            self.addVelocity(moveVector);
+            if(self.pushStateFSM.currentState === self.states.standing){
+                self.pushStateFSM.pushState(self.states.walking)
+            }
+        }, function () {
+            self.pushStateFSM.popState();
         });
         keyboard.register('run', KeyCodes.spacebar, function () {
-            self.moveSpeed = 0.0005;
+            if(
+                self.pushStateFSM.currentState === self.states.walking
+            ){
+                self.pushStateFSM.pushState(self.states.running);
+            }
         }, function () {
-            self.moveSpeed = 0.0003;
+            self.pushStateFSM.popState();
+        });
+        keyboard.register('jump', 'e', function(){
+           if(self.pushStateFSM.currentState !== self.states.jumping){
+               self.pushStateFSM.pushState(self.states.jumping);
+           }
         });
         
 
