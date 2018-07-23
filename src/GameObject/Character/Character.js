@@ -8,7 +8,7 @@ import {Direction} from '../../types/Direction';
 import {Vector} from 'matter-js';
 import {ForwardVectors} from "./constants";
 import {extras, Graphics, Sprite} from 'pixi.js';
-import Mathf from 'Mathf';
+import Mathf from 'mathf';
 import {Body} from 'matter-js';
 import {PushStateFSM} from "../../util/data-structures/PushStateFSM";
 import {JumpingCharacterState, RunningCharacterState, StandingCharacterState, WalkingCharacterState} from "./CharacterStates";
@@ -139,38 +139,16 @@ export class Character extends GameObject {
     initialize() {
         this.animationSpeed = DEFAULT.SPEED;
         this.updateSprite();
-        this.initShadow(this.sprite.width, this.sprite.height);
+        this.setBody(this.sprite.width, this.sprite.height);
 
-        this.states = {
+        this.states = Object.assign({}, this.states, {
             'standing' : new StandingCharacterState(this),
             'walking' : new WalkingCharacterState(this),
             'running' : new RunningCharacterState(this),
             'jumping' : new JumpingCharacterState(this)
-        };
+        });
 
         this.pushStateFSM.pushState(this.states.standing);
-    }
-
-    initShadow(spriteWidth, spriteHeight){
-        const circle = new Graphics();
-        circle.lineStyle(0, 0xFFFFFF,1);
-        circle.alpha = 0.4;
-        circle.beginFill(0x22222233);
-        circle.drawEllipse(0,0, spriteWidth/5, spriteWidth/18);
-        circle.endFill();
-
-
-        this.shadow = new Sprite(circle.generateTexture());
-        this.shadow.anchor.x = 0.5;
-        this.shadow.anchor.y = 0.5;
-        this.shadow.x = spriteWidth/2;
-        this.shadow.y = spriteHeight - 3;
-        this.shadowContainer = new PIXIContainer();
-
-        this.containers.push(this.shadowContainer);
-
-        this.container.addChild(this.shadow);
-
     }
 
     updateSprite() {
@@ -188,31 +166,12 @@ export class Character extends GameObject {
         this._cachedDirection = this.direction;
     }
 
-    getPlayerAirDistance(){
-        let shadowYDistance = this.shadowContainer.y - this.container.y;
-        this._peakJumpHeight = Math.max(shadowYDistance, this._peakJumpHeight);
-
-        return Mathf.clamp(shadowYDistance*0.0045, 0, this._maxJumpHeight);
-    }
-
-
     setSpritePlayState() {
         this.sprite.animationSpeed = this.animationSpeed;
         if (this.sprite.playing && !this.animate) {
             this.sprite.stop();
         } else if (!this.sprite.playing && this.animate) {
             this.sprite.play();
-        }
-    }
-
-    fireCurrentBehavior(delta) {
-        if (this._currentBehavior === null) return;
-
-        this._behaviorInterval += delta;
-        if (this._behaviorInterval >= this._currentBehavior.interval) {
-            this._currentBehavior.cb(delta);
-            this._cycleQueue();
-            this._behaviorInterval = 0;
         }
     }
 

@@ -37,5 +37,10 @@ export class State{
     exit(){
         this.hasExited = true;
     }
+    reset(){
+        this.hasEntered = false;
+        this.hasExited = false;
+        this.complete = false;
+    }
     update(){}
 }

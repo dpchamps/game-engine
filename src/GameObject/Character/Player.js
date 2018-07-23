@@ -16,58 +16,109 @@ export class Player extends Character {
     }
 
     initializeKeyboardControls() {
-        const keyboard = new Keyboard();
-        const self = this;
+        const keyboard = new Keyboard(this);
 
-        keyboard.register('up', 'w', function () {
-            self.direction = Direction.UP;
-            if(self.pushStateFSM.currentState === self.states.standing){
-                self.pushStateFSM.pushState(self.states.walking)
+        keyboard.hold('a s d w', (key) => {
+            switch (key) {
+                case 'a':
+                    this.direction = Direction.LEFT;
+                    break;
+                case 'w':
+                    this.direction = Direction.UP;
+                    break;
+                case 's':
+                    this.direction = Direction.DOWN;
+                    break;
+                case 'd':
+                    this.direction = Direction.RIGHT;
+                    break;
             }
-        }, function () {
-            self.pushStateFSM.popState();
-        });
-        keyboard.register('down', 's', function () {
-            self.direction = Direction.DOWN;
-            if(self.pushStateFSM.currentState === self.states.standing){
-                self.pushStateFSM.pushState(self.states.walking)
+            if (this.pushStateFSM.currentState === this.states.standing) {
+                this.pushStateFSM.pushState(this.states.walking)
             }
-        }, function () {
-            self.pushStateFSM.popState();
         });
-        keyboard.register('left', 'a', function () {
-            self.direction = Direction.LEFT;
-            if(self.pushStateFSM.currentState === self.states.standing){
-                self.pushStateFSM.pushState(self.states.walking)
+
+        keyboard.release('a s d w', () => {
+            if (this.pushStateFSM.currentState !== this.states.standing) {
+                this.pushStateFSM.pushState(this.states.standing);
             }
-        }, function () {
-            self.pushStateFSM.popState();
         });
-        keyboard.register('right', 'd', function () {
-            self.direction = Direction.RIGHT;
-            if(self.pushStateFSM.currentState === self.states.standing){
-                self.pushStateFSM.pushState(self.states.walking)
+
+        keyboard.press('e', () => {
+            Body.applyForce(this.body, this.getCoords(), {
+                x : this.body.velocity.x * 2,
+                y : -100
+            });
+           this.suspendedInAir = true;
+        });
+
+        keyboard.pressAndRelease('spacebar', () => {
+            if (
+                this.pushStateFSM.currentState === this.states.walking
+            ) {
+                this.pushStateFSM.pushState(this.states.running);
             }
-        }, function () {
-            self.pushStateFSM.popState();
-        });
-        keyboard.register('run', KeyCodes.spacebar, function () {
-            if(
-                self.pushStateFSM.currentState === self.states.walking
-            ){
-                self.pushStateFSM.pushState(self.states.running);
+        }, () => {
+            if (
+                this.pushStateFSM.currentState === this.states.running
+            ) {
+                this.pushStateFSM.popState();
             }
-        }, function () {
-            self.pushStateFSM.popState();
         });
-        keyboard.register('jump', 'e', function(){
-           if(self.pushStateFSM.currentState !== self.states.jumping){
-               self.pushStateFSM.pushState(self.states.jumping);
-           }
-        });
-        
 
 
+        // const keyboard = new Keyboard();
+        // const self = this;
+        //
+        // keyboard.register('up', 'w', function () {
+        //     self.direction = Direction.UP;
+        //     if(self.pushStateFSM.currentState === self.states.standing){
+        //         self.pushStateFSM.pushState(self.states.walking)
+        //     }
+        // }, function () {
+        //     self.pushStateFSM.popState();
+        // });
+        // keyboard.register('down', 's', function () {
+        //     self.direction = Direction.DOWN;
+        //     if(self.pushStateFSM.currentState === self.states.standing){
+        //         self.pushStateFSM.pushState(self.states.walking)
+        //     }
+        // }, function () {
+        //     self.pushStateFSM.popState();
+        // });
+        // keyboard.register('left', 'a', function () {
+        //     self.direction = Direction.LEFT;
+        //     if(self.pushStateFSM.currentState === self.states.standing){
+        //         self.pushStateFSM.pushState(self.states.walking)
+        //     }
+        // }, function () {
+        //     self.pushStateFSM.popState();
+        // });
+        // keyboard.register('right', 'd', function () {
+        //     self.direction = Direction.RIGHT;
+        //     if(self.pushStateFSM.currentState === self.states.standing){
+        //         self.pushStateFSM.pushState(self.states.walking)
+        //     }
+        // }, function () {
+        //     self.pushStateFSM.popState();
+        // });
+        // keyboard.register('run', KeyCodes.spacebar, function () {
+        //     if(
+        //         self.pushStateFSM.currentState === self.states.walking
+        //     ){
+        //         self.pushStateFSM.pushState(self.states.running);
+        //     }
+        // }, function () {
+        //     self.pushStateFSM.popState();
+        // });
+        // keyboard.register('jump', 'e', function(){
+        //    if(self.pushStateFSM.currentState !== self.states.jumping){
+        //        self.pushStateFSM.pushState(self.states.jumping);
+        //    }
+        // });
+        //
+        //
+        //
         this.keyboard = keyboard;
     }
 

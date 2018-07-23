@@ -12,9 +12,7 @@ export class CharacterState extends State {
 }
 
 export class StandingCharacterState extends CharacterState {
-    constructor(...rest) {
-        super(...rest)
-    }
+    constructor(...rest) {super(...rest)}
 
     enter() {
         this.character.animate = false;
@@ -65,7 +63,7 @@ export class RunningCharacterState extends CharacterState {
 
 export class JumpingCharacterState extends CharacterState {
     _peakJumpHeight = 0;
-    _maxJumpHeight = 5.5;
+    _maxJumpHeight = 15;
 
     constructor(...rest) {
         super(...rest);
@@ -123,7 +121,6 @@ export class JumpingCharacterState extends CharacterState {
             this.character.jumping = false;
             if (inAirDistance <= 0) {
                 this.complete = true;
-                this.character.pushStateFSM.popState();
             }
         }
 

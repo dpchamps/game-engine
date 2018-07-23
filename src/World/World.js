@@ -1,6 +1,6 @@
 "use strict";
 import {Container} from '../util/decorators/Container';
-import {Engine, World as PhysicsWorld, Body} from 'matter-js';
+import {Engine, World as PhysicsWorld, Body, Events} from 'matter-js';
 import {TileSet} from './TileSet';
 import {Grid} from './Grid';
 import {QuadTree} from "../util/data-structures/QuadTree";
@@ -19,6 +19,7 @@ export class World {
     tileSize;
     needsSort = false;
     gameObjectQuadTree;
+    gameObjects = [];
     physicsEngine = null;
 
     constructor(tileSize = 32, camera = new Camera(970)) {
@@ -31,6 +32,17 @@ export class World {
 
         const quadtreeRect = new Rectangle(0, 0, maxWorldWidth * tileSize, maxWorldHeight * tileSize);
         this.gameObjectQuadTree = new QuadTree(0, quadtreeRect);
+        Events.on(this.physicsEngine, 'afterUpdate', () => {
+           this.gameObjects.forEach( gameObject => {
+              if(gameObject.suspendedInAir){
+                  gameObject.body.force.y += gameObject.body.mass * 2;
+                  if(gameObject.getInAirDistance() <= 0){
+                      gameObject.suspendedInAir = false;
+                      gameObject.container.addChild(gameObject.shadow);
+                  }
+              }
+           });
+        });
     }
 
     addTileSet(name, spriteSheet, tileType) {
@@ -55,10 +67,11 @@ export class World {
     }
 
     addObject(gameObject){
+        gameObject.world = this;
+        this.gameObjects.push(gameObject);
         this.container.addChild(gameObject.container);
         this.container.addChild.apply(this.container, gameObject.containers);
-        PhysicsWorld.add(this.physicsEngine.world, [gameObject.body]);
-        //console.log(gameObject.body, Body);
+        PhysicsWorld.add(this.physicsEngine.world, [gameObject.body, gameObject.shadowPlatform]);
     }
 
     assetsReady() {

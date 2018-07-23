@@ -1,5 +1,6 @@
 import {Rectangle} from 'pixi.js';
 import isEqual from 'lodash/isEqual';
+import Mathf from 'mathf';
 import {lerpVector, approximateVectors} from "../util/common";
 
 export class Camera extends Rectangle {
@@ -23,7 +24,7 @@ export class Camera extends Rectangle {
 
     _lerpTo(destination, t) {
         const currentPosition = this.position();
-        const newPosition = lerpVector(currentPosition, destination, t/15);
+        const newPosition = lerpVector(currentPosition, destination, t/18);
 
         this._setPosition(newPosition);
     }
@@ -65,15 +66,13 @@ export class Camera extends Rectangle {
         } else if (this._follow !== null) {
             let {x,y} = this._follow;
 
-            // console.log(x);
             x -= (this.width/2 | 0) - this._follow.width / 2 | 0;
             y -= (this.height/2 | 0) - this._follow.height / 2 | 0;
-            // console.log(x);
+
             x = (x < 0) ? 0 : x;
             y = (y < 0) ? 0 : y;
-            // console.log(approximateVectors(this.position(), this._follow));
+
             if (!approximateVectors(this.position(), {x,y})) {
-                // console.log(this.position());
                 this._lerpTo({x,y}, deltaTime);
             }
         }

@@ -85,7 +85,7 @@ Promise.all([
 
 
     player.setCoords({x: 50*32, y: 50*32});
-    // player.setCoords({x: 0, y: 0});
+    // player.setCoords({x: 30, y: 30});
 
     // player.addBehavior('randomWalk', randomWalk)
     //     .addBehavior('stand', stand)
@@ -100,7 +100,6 @@ Promise.all([
     renderer.app.ticker.add( player.update.bind(player) );
 
     world.camera.follow(player);
-
 });
 
 // let rows = ((window.innerWidth) / 32) | 0;

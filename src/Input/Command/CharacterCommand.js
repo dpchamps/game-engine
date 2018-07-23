@@ -41,7 +41,7 @@ export class MoveCharacterCommand extends CharacterCommand{
 }
 
 export class WalkCharacterCommand extends MoveCharacterCommand{
-    walkSpeed = 0.0003;
+    walkSpeed = 1.5;
 
     constructor(...rest){super(...rest)}
 
@@ -54,7 +54,7 @@ export class WalkCharacterCommand extends MoveCharacterCommand{
 }
 
 export class JumpCharacterCommand extends MoveCharacterCommand{
-    jumpSpeed = -0.0035;
+    jumpSpeed = 4;
 
     constructor(...rest){super(...rest)}
 
@@ -66,7 +66,7 @@ export class JumpCharacterCommand extends MoveCharacterCommand{
 }
 
 export class RunCharacterCommand extends MoveCharacterCommand{
-    runSpeed = 0.0005;
+    runSpeed = 3;
     constructor(...rest){super(...rest)}
 
     execute(){

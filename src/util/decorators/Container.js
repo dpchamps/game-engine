@@ -1,5 +1,4 @@
 "use strict";
-
 import {Container as PIXIContainer} from 'pixi.js';
 import {mixin} from '../helpers/mixin';
 import {Body, Bodies} from 'matter-js';
